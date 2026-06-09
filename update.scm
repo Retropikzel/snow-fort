@@ -78,7 +78,7 @@
           (lambda (a b)
             (string>? (package-updated a) (package-updated b))))))
 
-(define (package-row pkg)
+(define (package-row pkg . description?)
   (let* ((desc (or (assoc-get pkg 'description) ""))
          (pkg-page-url (string-append "pkg-page?pkg=" (package-hash pkg))))
     `(tr (td (@ (class . "package")) ,(write-to-string (package-name pkg)))
@@ -89,7 +89,10 @@
                   ((assoc-get (cdr pkg) 'updated)
                    => (lambda (s) (substring s 0 10)))
                   (else ""))))
-         (td (@ (class . "description")) ,desc))))
+         ,(if (or (null? description?)
+                  (car description?))
+            `(td (@ (class . "description")) ,desc)
+            '()))))
 
 (define (write-package-data pkg)
   (when (not (file-exists? pkg-data-dir)) (create-directory pkg-data-dir))
@@ -184,11 +187,10 @@
                    (span (@ (class . "sort")
                             (data-sort . "updated")
                             (data-default-order . "asc"))
-                         "Updated"))
-               (th (@ (class . "description")) "Description")))
+                         "Updated"))))
          ,(map (lambda (pkg)
-                 (package-row pkg))
-               (take packages-newest 10))))))
+                 (package-row pkg #f))
+               (take packages-newest 5))))))
 
 
 (define (package-feed-item pkg)
