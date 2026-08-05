@@ -15,27 +15,12 @@
         (chibi regexp)
         (chibi io)
         (chibi snow fort)
-        (chibi snow package)
-        (chibi crypto md5))
+        (chibi snow package))
 
 (define (write-to-string x)
   (let ((out (open-output-string)))
     (write x out)
     (get-output-string out)))
-
-(define (package-hash pkg)
-  (md5
-    (list->string
-      (filter
-        (lambda (item) item)
-        (map
-          (lambda (c)
-            (if (or (char-alphabetic? c) (char-numeric? c)) c #f))
-          (string->list
-            (string-append
-              (write-to-string (package-name pkg))
-              (write-to-string (or (assq 'authors pkg) ""))
-              (write-to-string (or (assq 'maintainers pkg) "")))))))))
 
 ;; TODO Make smarter :)
 (define (remove-email str)
@@ -55,8 +40,6 @@
              (string-copy list-str (- (string-length list-str) 1))))
           ((string? (cadr item)) (remove-email (cadr item)))
           ((symbol? (cadr item)) (symbol->string (cadr item)))
-          ((equal? field 'size)
-           (string-append (number->string (cadr item)) " bytes"))
           (else ""))))
 
 (define (pkg-signature->string pkg)
@@ -102,10 +85,8 @@
                       ""))))
     `(table
        (@ (style . "text-align: left"))
-       (tr (th "Authors")
-           (th ,(pkg-field->string pkg 'authors)))
-       (tr (th "Maintainers")
-           (th ,(pkg-field->string pkg 'maintainers)))
+       (tr (th "Publisher")
+           (th ,(package-publisher '() pkg)))
        (tr (th "Latest version")
            (th ,(pkg-field->string pkg 'version)))
        (tr (th "Documentation")
@@ -131,13 +112,10 @@
                                 (char=? (string-ref url 0) #\/))
                          (path-strip-directory url)
                          url)
-                      )
-                   ,(string-append " (" (pkg-field->string pkg 'size) ")"))
+                      ))
               '()))
        (tr (th "License")
-           (th ,(pkg-field->string pkg 'license)))
-       (tr (th "Signature")
-           (th (textarea ,(pkg-signature->string pkg)))))))
+           (th ,(pkg-field->string pkg 'license))))))
 
 (servlet-run
   (lambda (cfg request next restart)
@@ -146,11 +124,14 @@
       request
       (lambda (content)
         (page
-          (let* ((pkg-hash-arg (or (request-param request "pkg" "nosuchfile")))
+          (let* ((pkg-name-arg (or (request-param request "name" "nosuchfile")))
+                 (pkg-publisher-arg (or (request-param request "publisher" "nosuchfile")))
                  (pkg-file (string-append
                              (static-local-path cfg "pkg-data")
                              "/"
-                             pkg-hash-arg
+                             pkg-publisher-arg
+                             "/"
+                             pkg-name-arg
                              ".scm")))
             (if (not (file-exists? pkg-file))
               `(div
@@ -171,11 +152,13 @@
                                (if pkg-name
                                  (cdr pkg-name)
                                  (cadr (assq 'name (cdr (assq 'library pkg))))))))
-                     (pkg-hash (package-hash pkg))
+                     (publisher (package-publisher '() pkg))
                      (dependencies-path
                        (static-local-path cfg
                                           (string-append "pkg-data/"
-                                                         pkg-hash
+                                                         publisher
+                                                         "/"
+                                                         name
                                                          "-dependencies.scm")))
                      (dependencies (if (file-exists? dependencies-path)
                                      (memoized-read dependencies-path)
