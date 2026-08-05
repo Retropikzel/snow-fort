@@ -10,7 +10,6 @@
         (chibi snow utils)
         (chibi log)
         (chibi filesystem)
-        (chibi crypto md5)
         (chibi sxml)
         (chibi time)
         (srfi 1)
@@ -26,33 +25,23 @@
     (write x out)
     (get-output-string out)))
 
-(define (package-hash pkg)
-  (md5
-    (list->string
-      (filter
-        (lambda (item) item)
-        (map
-          (lambda (c)
-            (if (or (char-alphabetic? c) (char-numeric? c)) c #f))
-          (string->list
-            (string-append
-              (write-to-string (package-name pkg))
-              (write-to-string (or (assq 'authors pkg) ""))
-              (write-to-string (or (assq 'maintainers pkg) "")))))))))
-
 (define packages
-  (let ((previous-pkg-hash "")
+  (let ((previous-pkg-name "")
+        (previous-pkg-publisher "")
         (repo->packages (lambda (repo-file)
                           (filter package?
                                   (with-input-from-file repo-file (lambda () (cdr (read))))))))
     (filter-map
       (lambda (pkg)
-        (if (equal? (package-hash pkg) previous-pkg-hash)
+        (if (and (equal? (package-name pkg) previous-pkg-name)
+                 (equal? (package-publisher '() pkg) previous-pkg-publisher))
           (begin
-            (set! previous-pkg-hash (package-hash pkg))
+            (set! previous-pkg-name (package-name pkg))
+            (set! previous-pkg-publisher (package-publisher '() pkg))
             #f)
           (begin
-            (set! previous-pkg-hash (package-hash pkg))
+            (set! previous-pkg-name (package-name pkg))
+            (set! previous-pkg-publisher (package-publisher '() pkg))
             pkg)))
       (sort
         (apply append (map repo->packages (cdr (command-line))))
@@ -80,7 +69,10 @@
 
 (define (package-row pkg . description?)
   (let* ((desc (or (assoc-get pkg 'description) ""))
-         (pkg-page-url (string-append "pkg-page?pkg=" (package-hash pkg))))
+         (pkg-page-url (string-append "pkg-page?name="
+                                      (write-to-string (package-name pkg))
+                                      "&publisher="
+                                      (package-publisher '() pkg))))
     `(tr (td (@ (class . "package")) ,(write-to-string (package-name pkg)))
          (td (small (a (@ (href . ,pkg-page-url)) ,(package-version pkg))))
          (td (@ (class . "updated"))
@@ -95,8 +87,16 @@
             '()))))
 
 (define (write-package-data pkg)
-  (when (not (file-exists? pkg-data-dir)) (create-directory pkg-data-dir))
-  (let* ((path (string-append pkg-data-dir "/" (package-hash pkg) ".scm")))
+  (let ((pkg-dir (string-append pkg-data-dir "/" (package-publisher '() pkg))))
+    (when (not (file-exists? pkg-dir))
+      (create-directory pkg-data-dir)
+      (create-directory pkg-dir)))
+  (let* ((path (string-append pkg-data-dir
+                              "/"
+                              (package-publisher '() pkg)
+                              "/"
+                              (write-to-string (package-name pkg))
+                              ".scm")))
     (with-output-to-file path (lambda () (write pkg)))))
 
 (define (package-dependencies-list pkg)
@@ -130,10 +130,15 @@
 
 
 (define (write-package-dependency-data pkg)
-  (when (not (file-exists? pkg-data-dir)) (create-directory pkg-data-dir))
+  (let ((pkg-dir (string-append pkg-data-dir "/" (package-publisher '() pkg))))
+    (when (not (file-exists? pkg-dir))
+      (create-directory pkg-data-dir)
+      (create-directory pkg-dir)))
   (let* ((path (string-append pkg-data-dir
                               "/"
-                              (package-hash pkg)
+                              (package-publisher '() pkg)
+                              "/"
+                              (write-to-string (package-name pkg))
                               "-dependencies.scm"))
          (dependencies (package-dependencies-list pkg)))
     (with-output-to-file path (lambda () (write dependencies)))))
@@ -195,7 +200,10 @@
 
 (define (package-feed-item pkg)
   (let* ((desc (or (assoc-get pkg 'description) ""))
-         (pkg-page-url (string-append "pkg-page?pkg=" (package-hash pkg)))
+         (pkg-page-url (string-append "pkg-page?name="
+                                      (write-to-string (package-name pkg))
+                                      "&publisher="
+                                      (package-publisher '() pkg)))
          (updated (assoc-get (cdr pkg) 'updated)))
     (cond ((not updated) '())
           (else
