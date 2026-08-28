@@ -37,16 +37,13 @@ snow to it and it still looks like a ball of snow."))
               "to more dialects in the future.")
            (p "Snow packages are also mirrored on "
               (a (@ (href . "https://akkuscm.org/")) "Akku") ".")
-           )
-          (div
-           (@ (id . "col2"))
            (p
             "Browse the " (a (@ (href . "/pkg/")) "packages") " or try "
             (a (@ (href . "http://chibi-scheme.appspot.com/"))
                "chibi-scheme in the browser")
             "!"))
           (div
-           (@ (id . "col3"))
+           (@ (id . "col2"))
            (h3 "Recent activity "
                (a (@ (href "s/recent-feed.xml"))
                   (img (@ (src "s/img/Feed-icon.svg") (width "16px")))))

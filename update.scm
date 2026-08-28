@@ -74,6 +74,7 @@
                                       "&publisher="
                                       (package-publisher '() pkg))))
     `(tr (td (@ (class . "package")) ,(write-to-string (package-name pkg)))
+         (td (@ (class . "publisher")) ,(package-publisher '() pkg))
          (td (small (a (@ (href . ,pkg-page-url)) ,(package-version pkg))))
          (td (@ (class . "updated"))
              (small
@@ -154,6 +155,7 @@
                              (data-sort . "package")
                              (data-default-order . "asc"))
                           "Package ⇅"))
+                (th (@ (class . "publisher")) "Publisher")
                 (th (@ (class . "version")) "Version")
                 (th (@ (class . "updated"))
                     (span (@ (class . "sort")
@@ -187,6 +189,7 @@
                             (data-sort . "package")
                             (data-default-order . "asc"))
                          "Package"))
+               (th (@ (class . "publisher")) "Publisher")
                (th (@ (class . "version")) "Version")
                (th (@ (class . "updated"))
                    (span (@ (class . "sort")
