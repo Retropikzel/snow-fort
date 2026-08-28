@@ -87,13 +87,13 @@
     `(table
        (@ (style . "text-align: left"))
        (tr (th "Publisher")
-           (th ,(package-publisher '() pkg)))
+           (td ,(package-publisher '() pkg)))
        (tr (th "Authors")
-           (th ,(package-author '() pkg)))
+           (td ,(package-author '() pkg)))
        (tr (th "Latest version")
-           (th ,(pkg-field->string pkg 'version)))
+           (td ,(pkg-field->string pkg 'version)))
        (tr (th "Documentation")
-           (th
+           (td
              ,(if (equal? url-type 'http)
                 `(a (@ (href . ,doc-url))
                     ,(if (and (string? url)
@@ -104,12 +104,12 @@
                 (string-append doc))))
        ,(if (equal? url-type 'git)
           `(tr (th "Repository")
-               `(th (a (@ (href . ,url))
-                       ,(path-strip-directory url))))
+               (td (a (@ (href . ,url))
+                      ,(path-strip-directory url))))
           '())
        ,(if (equal? url-type 'http)
           `(tr (th "Package file")
-               (th (a (@ (href . ,url))
+               (td (a (@ (href . ,url))
                       ,(if (and (string? url)
                                 (> (string-length url) 0)
                                 (char=? (string-ref url 0) #\/))
@@ -118,7 +118,7 @@
                       )))
           '())
        (tr (th "License")
-           (th ,(pkg-field->string pkg 'license))))))
+           (td ,(pkg-field->string pkg 'license))))))
 
 (servlet-run
   (lambda (cfg request next restart)
